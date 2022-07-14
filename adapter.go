@@ -238,7 +238,7 @@ func (a *Adapter) AddPolicy(sec string, ptype string, rule []string) error {
 // RemovePolicy removes a policy rule from the storage.
 func (a *Adapter) RemovePolicy(sec string, ptype string, rule []string) error {
 	item := savePolicyLine(ptype, rule)
-	return a.DB.Table(a.DataSourceName).Delete("ID", item.ID).Run()
+	return a.DB.Table(a.DataSourceName).Delete("ID", item.ID).Range("PType", ptype).Run()
 }
 
 // RemoveFilteredPolicy removes policy rules that match the filter from the storage.

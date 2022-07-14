@@ -1,4 +1,4 @@
-module github.com/newbmiao/dynacasbin
+module github.com/Project-Plato/dynacasbin
 
 go 1.13
 
