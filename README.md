@@ -8,7 +8,7 @@ Dynacasbin is the [DynamoDB](https://aws.amazon.com/dynamodb/) adapter for [Casb
 ## Installation
 
 ```go
-go get github.com/newbmiao/dynacasbin
+go get github.com/Project-Plato/dynacasbin
 ```
 
 ## Simple Example

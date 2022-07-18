@@ -25,6 +25,7 @@ type (
 		Service        *dynamodb.DynamoDB
 		DB             *dynamo.DB
 		DataSourceName string
+		Context        aws.Context
 	}
 
 	CasbinRule struct {
@@ -158,7 +159,7 @@ func (a *Adapter) saveItems(rules []CasbinRule) (int, error) {
 		items[i] = rules[i]
 	}
 
-	return a.DB.Table(a.DataSourceName).Batch().Write().Put(items...).Run()
+	return a.DB.Table(a.DataSourceName).Batch().Write().Put(items...).RunWithContext(a.Context)
 }
 
 func (a *Adapter) getAllItems() ([]CasbinRule, error) {
@@ -228,7 +229,7 @@ func isConditionalCheckErr(err error) bool {
 // AddPolicy adds a policy rule to the storage.
 func (a *Adapter) AddPolicy(sec string, ptype string, rule []string) error {
 	item := savePolicyLine(ptype, rule)
-	err := a.DB.Table(a.DataSourceName).Put(item).If("attribute_not_exists(ID)").Run()
+	err := a.DB.Table(a.DataSourceName).Put(item).If("attribute_not_exists(ID)").RunWithContext(a.Context)
 	if isConditionalCheckErr(err) {
 		return nil
 	}
@@ -238,7 +239,7 @@ func (a *Adapter) AddPolicy(sec string, ptype string, rule []string) error {
 // RemovePolicy removes a policy rule from the storage.
 func (a *Adapter) RemovePolicy(sec string, ptype string, rule []string) error {
 	item := savePolicyLine(ptype, rule)
-	return a.DB.Table(a.DataSourceName).Delete("ID", item.ID).Range("PType", ptype).Run()
+	return a.DB.Table(a.DataSourceName).Delete("ID", item.ID).Range("PType", ptype).RunWithContext(a.Context)
 }
 
 // RemoveFilteredPolicy removes policy rules that match the filter from the storage.
@@ -291,7 +292,7 @@ func (a *Adapter) RemoveFilteredPolicy(sec string, ptype string, fieldIndex int,
 		return nil
 	}
 	//cnt, err := a.DB.Table(a.DataSourceName).Batch("ID", "PType").Write().Delete(items...).Run() //sort key: PType
-	cnt, err := a.DB.Table(a.DataSourceName).Batch("ID").Write().Delete(items...).Run() // no sort key
+	cnt, err := a.DB.Table(a.DataSourceName).Batch("ID").Write().Delete(items...).RunWithContext(a.Context) // no sort key
 	if cnt == len(items) {
 		return nil
 	}

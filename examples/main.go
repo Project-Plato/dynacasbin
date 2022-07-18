@@ -3,9 +3,8 @@ package main
 import (
 	"fmt"
 
+	"github.com/Project-Plato/dynacasbin"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/casbin/casbin/v2"
-	"github.com/newbmiao/dynacasbin"
 )
 
 func main() {
