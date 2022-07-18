@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"github.com/casbin/casbin/v2"
 
 	"github.com/Project-Plato/dynacasbin"
 	"github.com/aws/aws-sdk-go/aws"
@@ -14,7 +16,7 @@ func main() {
 		Region: aws.String("ap-southeast-1"), // your region
 	} // Your AWS configuration
 	ds := "casbin-rules"
-	a, err := dynacasbin.NewAdapter(config, ds) // Your aws configuration and data source.
+	a, err := dynacasbin.NewAdapter(config, ds, context.TODO()) // Your aws configuration and data source.
 	if err != nil {
 		panic(err)
 	}

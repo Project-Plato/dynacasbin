@@ -1,6 +1,7 @@
 package dynacasbin
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"sort"
@@ -44,7 +45,7 @@ func init() {
 	} // Your AWS configuration
 	ds := "casbin-rules"
 	var err error
-	a, err = NewAdapter(config, ds) // Your aws configuration and data source.
+	a, err = NewAdapter(config, ds, context.TODO()) // Your aws configuration and data source.
 	if err != nil {
 		panic(err)
 	}

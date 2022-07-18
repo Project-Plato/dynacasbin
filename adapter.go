@@ -41,10 +41,13 @@ type (
 )
 
 // NewAdapter is the constructor for adapter
-func NewAdapter(config *aws.Config, ds string) (*Adapter, error) {
-	a := &Adapter{}
-	a.Config = config
-	a.DataSourceName = ds
+func NewAdapter(config *aws.Config, ds string, ctx aws.Context) (*Adapter, error) {
+	a := &Adapter{
+		Context:        ctx,
+		Config:         config,
+		DataSourceName: ds,
+	}
+
 	s, err := session.NewSession(config)
 	if err != nil {
 		return a, err
