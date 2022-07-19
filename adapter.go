@@ -167,7 +167,7 @@ func (a *Adapter) saveItems(rules []CasbinRule) (int, error) {
 
 func (a *Adapter) getAllItems() ([]CasbinRule, error) {
 	var rule []CasbinRule
-	err := a.DB.Table(a.DataSourceName).Scan().All(&rule)
+	err := a.DB.Table(a.DataSourceName).Scan().AllWithContext(a.Context, &rule)
 	if err != nil {
 		return nil, err
 	}
