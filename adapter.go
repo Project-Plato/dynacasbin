@@ -2,6 +2,7 @@ package dynacasbin
 
 import (
 	"fmt"
+	"golang.org/x/sync/errgroup"
 	"regexp"
 
 	"crypto/md5"
@@ -89,7 +90,7 @@ func loadPolicyLine(line CasbinRule, model model.Model) {
 	persist.LoadPolicyLine(lineText, model)
 }
 
-//!important: call Enforcer.LoadPolicy rather than call Adapter.LoadPolicy.
+// !important: call Enforcer.LoadPolicy rather than call Adapter.LoadPolicy.
 // cause call Adapter.LoadPolicy multi times will repeat policys multi times.
 func (a *Adapter) LoadPolicy(model model.Model) error {
 	p, err := a.getAllItems()
@@ -132,7 +133,7 @@ func savePolicyLine(ptype string, rule []string) CasbinRule {
 	return line
 }
 
-//save all policy
+// save all policy
 func (a *Adapter) SavePolicy(model model.Model) error {
 	//IMPORTANT: No need use it now.
 	var lines []CasbinRule
@@ -221,7 +222,7 @@ func (a *Adapter) DeleteTable() error {
 	return err
 }
 
-//This Err will return, if cond check is false
+// This Err will return, if cond check is false
 func isConditionalCheckErr(err error) bool {
 	if ae, ok := err.(awserr.RequestFailure); ok {
 		return ae.Code() == "ConditionalCheckFailedException"
@@ -239,10 +240,37 @@ func (a *Adapter) AddPolicy(sec string, ptype string, rule []string) error {
 	return err
 }
 
+// AddPolicies adds a batch of policies to the storage.
+func (a *Adapter) AddPolicies(sec string, ptype string, rules [][]string) error {
+	// DynamoDB does not support batch writes with conditional statements, so we're using an error group to speed things
+	// up and to collect the errors
+	group, _ := errgroup.WithContext(a.Context)
+	for _, rule := range rules {
+		group.Go(func() error {
+			return a.AddPolicy(sec, ptype, rule)
+		})
+	}
+	return group.Wait()
+}
+
 // RemovePolicy removes a policy rule from the storage.
 func (a *Adapter) RemovePolicy(sec string, ptype string, rule []string) error {
 	item := savePolicyLine(ptype, rule)
 	return a.DB.Table(a.DataSourceName).Delete("ID", item.ID).Range("PType", ptype).RunWithContext(a.Context)
+}
+
+// RemovePolicies removes a batch of rules from the storage.
+func (a *Adapter) RemovePolicies(sec string, ptype string, rules [][]string) error {
+	keys := make([]dynamo.Keyed, len(rules))
+	for i, rule := range rules {
+		item := savePolicyLine(ptype, rule)
+		keys[i] = dynamo.Keys{item.ID, ptype}
+	}
+	wrote, err := a.DB.Table(a.DataSourceName).Batch().Write().Delete(keys...).RunWithContext(a.Context)
+	if wrote != len(rules) {
+		return fmt.Errorf("unexpected number of batch deletes; %d when expected %d", wrote, len(rules))
+	}
+	return err
 }
 
 // RemoveFilteredPolicy removes policy rules that match the filter from the storage.
