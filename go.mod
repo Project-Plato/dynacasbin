@@ -7,4 +7,5 @@ require (
 	github.com/casbin/casbin/v2 v2.25.1
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/guregu/dynamo v1.10.2
+	golang.org/x/sync v0.0.0-20190423024810-112230192c58
 )
