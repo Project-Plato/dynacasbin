@@ -30,9 +30,9 @@ type (
 	}
 
 	CasbinRule struct {
-		ID    string `dynamo:"ID"`    //md5 of rule
-		PType string `dynamo:"PType"` //hash key
-		V0    string `dynamo:"V0"`    //sort key
+		ID    string `dynamo:"ID,hash"`     //md5 of rule
+		PType string `dynamo:"PType,range"` //hash key
+		V0    string `dynamo:"V0"`          //sort key
 		V1    string `dynamo:"V1"`
 		V2    string `dynamo:"V2"`
 		V3    string `dynamo:"V3"`
