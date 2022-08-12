@@ -1,13 +1,10 @@
 package dynacasbin
 
 import (
-	"fmt"
-	"golang.org/x/sync/errgroup"
-	"regexp"
-
 	"crypto/md5"
-
+	"fmt"
 	"github.com/casbin/casbin/v2/model"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/casbin/casbin/v2/persist"
 
@@ -20,7 +17,7 @@ import (
 )
 
 type (
-	// Adapter structs holds dynamoDB config and service	Adapter struct {
+	// Adapter structs holds dynamoDB config and service
 	Adapter struct {
 		Config         *aws.Config
 		Service        *dynamodb.DynamoDB
@@ -30,9 +27,9 @@ type (
 	}
 
 	CasbinRule struct {
-		ID    string `dynamo:"ID,hash"`     //md5 of rule
-		PType string `dynamo:"PType,range"` //hash key
-		V0    string `dynamo:"V0"`          //sort key
+		ID    string `dynamo:"ID,hash"`
+		PType string `dynamo:"PType"`
+		V0    string `dynamo:"V0"`
 		V1    string `dynamo:"V1"`
 		V2    string `dynamo:"V2"`
 		V3    string `dynamo:"V3"`
@@ -175,53 +172,6 @@ func (a *Adapter) getAllItems() ([]CasbinRule, error) {
 	return rule, nil
 }
 
-// CreateTable has response for create new table for store
-func (a *Adapter) CreateTable() (*dynamodb.CreateTableOutput, error) {
-	params := &dynamodb.CreateTableInput{
-		TableName: aws.String(a.DataSourceName),
-		AttributeDefinitions: []*dynamodb.AttributeDefinition{
-			{
-				AttributeName: aws.String("ID"),
-				AttributeType: aws.String("S"),
-			},
-		},
-		KeySchema: []*dynamodb.KeySchemaElement{
-			{
-				AttributeName: aws.String("ID"),
-				KeyType:       aws.String("HASH"),
-			},
-		},
-		ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
-			ReadCapacityUnits:  aws.Int64(10),
-			WriteCapacityUnits: aws.Int64(10),
-		},
-	}
-
-	out, err := a.Service.CreateTable(params)
-
-	if err != nil {
-		matched, err := regexp.MatchString("ResourceInUseException: Cannot create preexisting table", err.Error())
-		if err != nil {
-			return nil, err
-		}
-
-		if !matched {
-			return nil, err
-		}
-	}
-
-	return out, nil
-}
-
-// DeleteTable should delete a table
-func (a *Adapter) DeleteTable() error {
-	params := &dynamodb.DeleteTableInput{
-		TableName: aws.String(a.DataSourceName),
-	}
-	_, err := a.Service.DeleteTable(params)
-	return err
-}
-
 // This Err will return, if cond check is false
 func isConditionalCheckErr(err error) bool {
 	if ae, ok := err.(awserr.RequestFailure); ok {
@@ -256,7 +206,7 @@ func (a *Adapter) AddPolicies(sec string, ptype string, rules [][]string) error 
 // RemovePolicy removes a policy rule from the storage.
 func (a *Adapter) RemovePolicy(sec string, ptype string, rule []string) error {
 	item := savePolicyLine(ptype, rule)
-	return a.DB.Table(a.DataSourceName).Delete("ID", item.ID).Range("PType", ptype).RunWithContext(a.Context)
+	return a.DB.Table(a.DataSourceName).Delete("ID", item.ID).RunWithContext(a.Context)
 }
 
 // RemovePolicies removes a batch of rules from the storage.
@@ -274,9 +224,6 @@ func (a *Adapter) RemovePolicies(sec string, ptype string, rules [][]string) err
 }
 
 // RemoveFilteredPolicy removes policy rules that match the filter from the storage.
-
-// IMPORTANT: Use ID as primary partition key and no sort key.
-// If has sort key, toggle the comment code of this func to map hash key & sort key.
 func (a *Adapter) RemoveFilteredPolicy(sec string, ptype string, fieldIndex int, fieldValues ...string) error {
 	res, err := a.getAllItems()
 	if err != nil {
@@ -314,7 +261,6 @@ func (a *Adapter) RemoveFilteredPolicy(sec string, ptype string, fieldIndex int,
 				(line.V5 != "" && line.V5 != item.V5) {
 				continue
 			}
-			//items = append(items, dynamo.Keys{item.ID, item.PType}) //sort key: PType
 			items = append(items, dynamo.Keys{item.ID}) // no sort key
 		}
 	}
@@ -322,8 +268,7 @@ func (a *Adapter) RemoveFilteredPolicy(sec string, ptype string, fieldIndex int,
 	if len(items) == 0 {
 		return nil
 	}
-	//cnt, err := a.DB.Table(a.DataSourceName).Batch("ID", "PType").Write().Delete(items...).Run() //sort key: PType
-	cnt, err := a.DB.Table(a.DataSourceName).Batch("ID").Write().Delete(items...).RunWithContext(a.Context) // no sort key
+	cnt, err := a.DB.Table(a.DataSourceName).Batch("ID").Write().Delete(items...).RunWithContext(a.Context)
 	if cnt == len(items) {
 		return nil
 	}
